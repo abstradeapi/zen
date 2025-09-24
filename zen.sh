@@ -6,6 +6,24 @@ set -e
 APP="$1"
 ACTION="$2"
 
+### --- Self-Installer ---
+if [[ "$APP" == "install-self" ]]; then
+    SCRIPT_PATH="$(realpath "$0")"
+    echo "📦 Installing zen to /usr/local/bin..."
+    sudo cp "$SCRIPT_PATH" /usr/local/bin/zen
+    sudo chmod +x /usr/local/bin/zen
+    echo "✅ Installed! You can now run: zen hello"
+    exit 0
+fi
+
+### --- Self-Uninstaller ---
+if [[ "$APP" == "uninstall-self" ]]; then
+    echo "🧹 Removing zen from /usr/local/bin..."
+    sudo rm -f /usr/local/bin/zen
+    echo "✅ Removed zen."
+    exit 0
+fi
+
 ### --- Hello Command ---
 if [[ "$APP" == "hello" ]]; then
     echo "👋 Hello from zen! ✅"
@@ -121,9 +139,10 @@ case "$APP" in
     docker) docker_manage "$ACTION" ;;
     update) sys_update ;;
     webtop) webtop_manage "$ACTION" ;;
-    hello) ;; # handled earlier
-    *)
+    *) 
         echo "🔧 zen - Available commands:"
+        echo "  zen install-self             # Install zen globally"
+        echo "  zen uninstall-self           # Remove zen"
         echo "  zen hello                    # Test command"
         echo "  zen autodel <app>            # Search and delete app files"
         echo "  zen docker install|uninstall # Install or uninstall Docker"
