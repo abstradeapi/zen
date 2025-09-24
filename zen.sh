@@ -12,7 +12,7 @@ if [[ "$APP" == "install-self" ]]; then
     echo "📦 Installing zen to /usr/local/bin..."
     sudo cp "$SCRIPT_PATH" /usr/local/bin/zen
     sudo chmod +x /usr/local/bin/zen
-    echo "✅ Installed! Now you can run 'zen' from anywhere."
+    echo "✅ Installed! You can now run: zen hello"
     exit 0
 fi
 
@@ -20,13 +20,13 @@ fi
 if [[ "$APP" == "uninstall-self" ]]; then
     echo "🧹 Removing zen from /usr/local/bin..."
     sudo rm -f /usr/local/bin/zen
-    echo "✅ Removed zen. (You can still run this script manually if needed)"
+    echo "✅ Removed zen."
     exit 0
 fi
 
 ### --- Hello Command ---
 if [[ "$APP" == "hello" ]]; then
-    echo "👋 Hello from zen!"
+    echo "👋 Hello from zen! ✅"
     exit 0
 fi
 
@@ -49,24 +49,23 @@ autodel() {
     echo "Found files:"
     echo "$results"
     echo
-    read -rp "❓ Do you want to delete everything under /config/ containing '$app'? (y/N): " confirm
+    read -rp "❓ Delete everything under /config/ for '$app'? (y/N): " confirm
 
     if [[ "$confirm" =~ ^[Yy]$ ]]; then
-        echo "🗑 Deleting related files from /config/..."
+        echo "🗑 Deleting..."
         echo "$results" | grep "^/config/" | xargs -r sudo rm -rf
-        echo "✅ Files deleted."
+        echo "✅ Deleted."
 
         deb_file=$(find /config/ -maxdepth 1 -iname "*.deb" -print -quit)
         if [[ -n "$deb_file" ]]; then
             pkg_name=$(dpkg-deb -f "$deb_file" Package 2>/dev/null || true)
             if [[ -n "$pkg_name" ]]; then
-                echo "📦 Attempting to remove package '$pkg_name'..."
-                sudo apt remove --purge -y "$pkg_name" && sudo apt autoremove -y || echo "⚠️ Package not installed or removal failed."
+                echo "📦 Removing package '$pkg_name'..."
+                sudo apt remove --purge -y "$pkg_name" && sudo apt autoremove -y || echo "⚠️ Package not installed."
             fi
         fi
     else
-        echo "❌ Deletion cancelled."
-        exit 0
+        echo "❌ Cancelled."
     fi
 }
 
@@ -78,44 +77,41 @@ docker_manage() {
             sudo apt update && sudo apt install -y ca-certificates curl gnupg lsb-release
             sudo mkdir -p /etc/apt/keyrings
             curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-            echo \
-              "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-              $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-            sudo apt update
-            sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-            echo "✅ Docker installed successfully."
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
+            | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+            sudo apt update && sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+            echo "✅ Docker installed."
             ;;
         uninstall)
             echo "🧹 Uninstalling Docker..."
             sudo apt remove --purge -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
             sudo apt autoremove -y
             sudo rm -rf /var/lib/docker /var/lib/containerd
-            echo "✅ Docker fully removed."
+            echo "✅ Docker removed."
             ;;
         *)
             echo "Usage: zen docker [install|uninstall]"
-            exit 1
             ;;
     esac
 }
 
 ### --- Function: System Update ---
 sys_update() {
-    echo "⬆️ Updating system packages..."
+    echo "⬆️ Updating system..."
     sudo apt update && sudo apt upgrade -y
     echo "🔧 Installing helper tools..."
     sudo apt install -y gnome-keyring wget curl git unzip htop
-    echo "✅ System updated and helper tools installed."
+    echo "✅ System updated."
 }
 
-### --- Function: Webtop Control ---
+### --- Function: Webtop ---
 webtop_manage() {
     case "$1" in
         stop)
-            echo "🛑 Stopping and removing webtop container..."
+            echo "🛑 Stopping webtop..."
             docker stop webtopo || true
             docker rm webtopo || true
-            echo "✅ Webtop container stopped and removed."
+            echo "✅ Webtop stopped."
             ;;
         *)
             echo "🚀 Starting Webtop container..."
@@ -132,34 +128,26 @@ webtop_manage() {
               --shm-size="8gb" \
               --restart unless-stopped \
               ghcr.io/tibor309/webtop:ubuntu
-            echo "✅ Webtop started on ports 3000 and 3001."
+            echo "✅ Webtop started on http://localhost:3000"
             ;;
     esac
 }
 
 ### --- Main Dispatcher ---
 case "$APP" in
-    autodel)
-        autodel "$ACTION"
-        ;;
-    docker)
-        docker_manage "$ACTION"
-        ;;
-    update)
-        sys_update
-        ;;
-    webtop)
-        webtop_manage "$ACTION"
-        ;;
-    *)
-        echo "Usage:"
+    autodel) autodel "$ACTION" ;;
+    docker) docker_manage "$ACTION" ;;
+    update) sys_update ;;
+    webtop) webtop_manage "$ACTION" ;;
+    *) 
+        echo "🔧 zen - Available commands:"
         echo "  zen install-self             # Install zen globally"
-        echo "  zen uninstall-self           # Remove zen from /usr/local/bin"
-        echo "  zen hello                    # Test zen is working"
-        echo "  zen autodel <app_name>       # Search, confirm delete & uninstall app"
+        echo "  zen uninstall-self           # Remove zen"
+        echo "  zen hello                    # Test command"
+        echo "  zen autodel <app>            # Search and delete app files"
         echo "  zen docker install|uninstall # Install or uninstall Docker"
         echo "  zen update                   # System update + helper tools"
         echo "  zen webtop                   # Start Webtop container"
-        echo "  zen webtop stop              # Stop & remove Webtop container"
+        echo "  zen webtop stop              # Stop Webtop container"
         ;;
 esac
