@@ -11,3 +11,18 @@ docker run -d \
   --shm-size="8gb" \
   --restart unless-stopped \
   tibynx/webtop:ubuntu
+
+
+
+
+
+
+lscr.io/linuxserver/chrome:latest
+
+
+
+
+
+
+
+
